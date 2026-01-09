@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+/* Force the app container to fill the screen exactly */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #09090b;
+}
+
+body {
+  /* Prevents the rubber-band effect on iOS */
+  overscroll-behavior-y: none;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
