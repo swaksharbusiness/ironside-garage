@@ -291,9 +291,9 @@ export default function App() {
         <section className="relative min-h-[75vh] flex items-center justify-center px-4 py-12 bg-zinc-950 overflow-hidden text-center">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800 to-transparent"></div>
           <div className="relative z-10 max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-7xl font-black tracking-tighter leading-[0.85] mb-8 text-white uppercase italic">
-              WE GET YOU<br />
-              <span className="text-[#FF5733]">BACK ON THE ROAD.</span>
+            <h1 className="text-4xl md:text-7xl font-black tracking-tighter leading-[0.85] mb-8 text-white italic">
+              We Get You<br />
+              <span className="text-[#FF5733]">Back On The Road.</span>
             </h1>
             <p className="text-zinc-400 font-bold uppercase tracking-widest text-lg md:text-2xl mb-10">no upsell. just honest services</p>
             <button 
