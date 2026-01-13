@@ -13,70 +13,78 @@ import {
   Disc,
   Wrench,
   ChevronRight,
-  Settings,
-  Upload,
-  Trash2,
   X,
+  MessageSquare,
   Lock,
   Unlock,
+  Terminal,
+  Upload,
+  RefreshCcw,
+  CheckCircle2,
   AlertCircle
 } from "lucide-react"
 
 // --- CONFIGURATION ---
-// Replace with your actual Cloudinary details
-const CLOUDINARY_CLOUD_NAME = "dq0eqnh6u";
-const CLOUDINARY_UPLOAD_PRESET = "ironside_preset";
-const GALLERY_TAG = "ironside_gallery"; // Images will be fetched by this tag
+const CLOUDINARY_CLOUD_NAME = "dq0eqnh6u"; 
+const CLOUDINARY_UPLOAD_PRESET = "your_preset"; 
+const GALLERY_TAG = "ironside_gallery"; 
 const ADMIN_PASSWORD = "1234"; 
+const SHOP_PHONE = "(555) 123-4567";
 
 export default function App() {
-  // --- UI STATE ---
+  // State for Modals and Admin
+  const [showBooking, setShowBooking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [authError, setAuthError] = useState(false);
-  const [isLoadingGallery, setIsLoadingGallery] = useState(true);
-
-  // --- CONTENT STATE (Persisted via LocalStorage & Cloudinary Tagging) ---
-  const [isOpen, setIsOpen] = useState(() => {
-    const saved = localStorage.getItem("ironside_isOpen");
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-
-  const [leadTime, setLeadTime] = useState(() => {
-    return localStorage.getItem("ironside_leadTime") || "3–5 DAYS OUT";
-  });
-
-  const [builds, setBuilds] = useState([]);
-
-  // --- PERSISTENCE LOGIC ---
   
-  // Save settings to local storage when they change
-  useEffect(() => {
-    localStorage.setItem("ironside_isOpen", JSON.stringify(isOpen));
-    localStorage.setItem("ironside_leadTime", leadTime);
-  }, [isOpen, leadTime]);
+  // State for Business Logic
+  const [isOpen, setIsOpen] = useState(() => JSON.parse(localStorage.getItem("ironside_isOpen") ?? "true"));
+  const [leadTime, setLeadTime] = useState(() => localStorage.getItem("ironside_leadTime") || "3–5 DAYS OUT");
+  const [builds, setBuilds] = useState([]);
+  
+  // State for Gallery / Debugging
+  const [isLoadingGallery, setIsLoadingGallery] = useState(false);
+  const [debugLog, setDebugLog] = useState([]);
+  const [connectionStatus, setConnectionStatus] = useState("idle");
 
-  // Fetch gallery from Cloudinary using Tags
+  const addLog = (msg, type = "info") => {
+    setDebugLog(prev => [{ msg, type, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 5));
+  };
+
+  // 1. Script Injection for Cloudinary
+  useEffect(() => {
+    const scriptId = "cloudinary-upload-widget-script";
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://upload-widget.cloudinary.com/global/all.js";
+      script.async = true;
+      script.onload = () => addLog("Cloudinary Ready", "success");
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // 2. Fetch Gallery
   const fetchGallery = async () => {
+    setIsLoadingGallery(true);
     try {
-      setIsLoadingGallery(true);
-      // NOTE: For this URL to work, "Resource List" must be enabled in Cloudinary 
-      // settings under Settings -> Security -> Restricted media types: Uncheck "Resource list"
-      const response = await fetch(
-        `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/list/${GALLERY_TAG}.json`
-      );
-      
+      const url = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/list/${GALLERY_TAG}.json?v=${Date.now()}`;
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        const formattedBuilds = data.resources.map(res => ({
-          title: "Custom Build",
-          img: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v${res.version}/${res.public_id}.${res.format}`
+        const formatted = data.resources.map(res => ({
+          img: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto,f_auto/v${res.version}/${res.public_id}.${res.format}`,
+          title: "Ironside Custom"
         }));
-        setBuilds(formattedBuilds);
+        setBuilds(formatted);
+        setConnectionStatus("success");
+      } else {
+        setConnectionStatus("error");
       }
-    } catch (err) {
-      console.error("Gallery fetch failed. Check Cloudinary 'Resource List' settings.", err);
+    } catch (e) {
+      setConnectionStatus("error");
     } finally {
       setIsLoadingGallery(false);
     }
@@ -84,9 +92,10 @@ export default function App() {
 
   useEffect(() => {
     fetchGallery();
-  }, []);
+    localStorage.setItem("ironside_isOpen", JSON.stringify(isOpen));
+    localStorage.setItem("ironside_leadTime", leadTime);
+  }, [isOpen, leadTime]);
 
-  // --- ADMIN LOGIC ---
   const handleAuth = (e) => {
     e.preventDefault();
     if (passwordInput === ADMIN_PASSWORD) {
@@ -101,33 +110,65 @@ export default function App() {
   const openUploadWidget = () => {
     if (!window.cloudinary) return;
     window.cloudinary.openUploadWidget(
-      { 
-        cloudName: CLOUDINARY_CLOUD_NAME, 
-        uploadPreset: CLOUDINARY_UPLOAD_PRESET, 
-        tags: [GALLERY_TAG], // CRITICAL: This tags the photo so we can find it later
-        sources: ["local", "url", "camera"], 
-        multiple: false 
-      },
+      { cloudName: CLOUDINARY_CLOUD_NAME, uploadPreset: CLOUDINARY_UPLOAD_PRESET, tags: [GALLERY_TAG] },
       (error, result) => {
-        if (!error && result && result.event === "success") {
-          // Re-fetch gallery to include the new persistent image
-          setTimeout(fetchGallery, 1000);
+        if (!error && result.event === "success") {
+          addLog("Upload Success", "success");
+          setTimeout(fetchGallery, 2000);
         }
       }
     );
   };
 
   const services = [
-    { name: "Quick Diagnostic", description: "Full system check and issue report", price: "$75", icon: Gauge },
-    { name: "Oil Change & Filter", description: "Fresh oil, new filter, fluid check", price: "$95", icon: Droplet },
-    { name: "Brake Service", description: "Pads, rotors, fluid replacement", price: "$185", icon: Disc },
-    { name: "Chain & Sprocket", description: "Clean, adjust, or replace drive system", price: "$120", icon: Zap },
-    { name: "Tire Mount & Balance", description: "Professional mount, balance, disposal", price: "$65", icon: Cog },
-    { name: "Full Tune-Up", description: "Complete maintenance and performance check", price: "Call for Quote", icon: Shield }
+    { name: "Quick Diagnostic", price: "$75", icon: Gauge, description: "Full system check" },
+    { name: "Oil Change & Filter", price: "$95", icon: Droplet, description: "Premium fluids" },
+    { name: "Brake Service", price: "$185", icon: Disc, description: "Pads & rotors" },
+    { name: "Chain & Sprocket", price: "$120", icon: Zap, description: "Drive system" },
+    { name: "Tire Mount", price: "$65", icon: Cog, description: "Balance & disposal" },
+    { name: "Full Tune-Up", price: "Quote", icon: Shield, description: "Total performance" }
   ];
 
   return (
-    <div className="h-screen w-full flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-[#FF5733] selection:text-white overflow-hidden">
+    <div className="h-screen w-full flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-[#FF5733] overflow-hidden">
+	
+      {/* 1. BOOKING MODAL */}
+      {showBooking && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+              <h3 className="font-black uppercase italic tracking-widest text-[#FF5733]">Secure a Slot</h3>
+              <button onClick={() => setShowBooking(false)} className="p-2 hover:bg-zinc-800 rounded-full"><X/></button>
+            </div>
+            <div className="p-8 space-y-6">
+              <p className="text-zinc-400 text-sm font-medium">To maintain quality, we handle all bookings via direct communication. Choose your preferred method:</p>
+              
+              <a href={`sms:+15551234567?body=I'd like to book a service at Ironside Garage.`} className="flex items-center gap-4 p-5 bg-zinc-950 border border-zinc-800 rounded-2xl hover:border-[#FF5733] transition-all group">
+                <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center group-hover:bg-[#FF5733]/10">
+                  <MessageSquare className="text-[#FF5733]" />
+                </div>
+                <div>
+                  <div className="font-black uppercase text-xs tracking-widest">Text Us</div>
+                  <div className="text-zinc-500 text-[10px]">Fastest for photos & quotes</div>
+                </div>
+              </a>
+
+              <a href="tel:+15551234567" className="flex items-center gap-4 p-5 bg-zinc-950 border border-zinc-800 rounded-2xl hover:border-[#FF5733] transition-all group">
+                <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center group-hover:bg-[#FF5733]/10">
+                  <Phone className="text-[#FF5733]" />
+                </div>
+                <div>
+                  <div className="font-black uppercase text-xs tracking-widest">Call Shop</div>
+                  <div className="text-zinc-500 text-[10px]">Direct line to the mechanic</div>
+                </div>
+              </a>
+            </div>
+            <div className="p-6 bg-zinc-950/50 text-center">
+               <p className="text-[9px] font-black uppercase text-zinc-600 tracking-[0.2em]">Estimated Lead Time: {leadTime}</p>
+            </div>
+          </div>
+        </div>
+      )}	   
       
       {/* SETTINGS / ADMIN OVERLAY */}
       {showSettings && (
@@ -232,135 +273,114 @@ export default function App() {
       )}
 
       {/* HEADER */}
-      <header className="flex-none border-b border-zinc-800 bg-zinc-950 z-40 relative shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Wrench className="w-6 h-6 text-[#FF5733]" strokeWidth={2.5} />
-            <span className="text-xl font-black tracking-tighter uppercase italic">
-              Ironside<span className="text-zinc-600">Garage</span>
-            </span>
-          </div>
-          <button 
-            onDoubleClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 group p-2 rounded-lg hover:bg-zinc-900 transition-all"
-          >
-            <div className={`w-2 h-2 rounded-full animate-pulse ${isOpen ? 'bg-[#FF5733]' : 'bg-red-500'}`}></div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 group-hover:text-zinc-400">
-              {isOpen ? 'Open' : 'Closed'}
-            </span>
-            <Settings className="w-4 h-4 text-zinc-800 group-hover:text-zinc-600 ml-2" />
-          </button>
+      <header className="flex-none border-b border-zinc-900 bg-zinc-950 z-40 relative px-4 py-4 flex justify-between items-center shadow-lg">
+        <div className="flex items-center gap-2">
+          <Wrench className="w-6 h-6 text-[#FF5733]" strokeWidth={2.5} />
+          <span className="text-xl font-black tracking-tighter uppercase italic">Ironside<span className="text-zinc-600">Garage</span></span>
         </div>
+        <button onDoubleClick={() => setShowSettings(true)} className="flex items-center gap-2 bg-zinc-900 py-1.5 px-3 rounded-full border border-zinc-800">
+          <div className={`w-3 h-3 rounded-full ${isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+          <span className="text-[20px] font-black text-zinc-400 uppercase tracking-widest">{isOpen ? 'GARAGE OPEN' : 'GARAGE CLOSED'}</span>
+        </button>
       </header>
 
-      {/* MAIN */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth touch-pan-y">
+      {/* MAIN CONTENT */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden">
         
         {/* HERO */}
-        <section className="relative min-h-[60vh] flex items-center justify-center px-4 py-12 bg-zinc-900 border-b border-zinc-800 overflow-hidden">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800 via-zinc-950 to-zinc-950 pointer-events-none"></div>
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-            <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8 text-white">
-              BUILT TO<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#FF5733] to-[#cc3719]">PERFORM.</span>
+        <section className="relative min-h-[75vh] flex items-center justify-center px-4 py-12 bg-zinc-950 overflow-hidden text-center">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800 to-transparent"></div>
+          <div className="relative z-10 max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-7xl font-black tracking-tighter leading-[0.85] mb-8 text-white uppercase italic">
+              WE GET YOU<br />
+              <span className="text-[#FF5733]">BACK ON THE ROAD.</span>
             </h1>
-            <button className="px-10 py-5 bg-[#FF5733] hover:bg-[#E64A2A] text-white text-xl font-black italic tracking-wide skew-x-[-10deg] transition-all transform active:scale-95 shadow-xl">
-              <span className="block skew-x-[10deg]">BOOK SERVICE</span>
+            <p className="text-zinc-400 font-bold uppercase tracking-widest text-lg md:text-2xl mb-10">no upsell. just honest services</p>
+            <button 
+              onClick={() => setShowBooking(true)}
+              className="px-12 py-6 bg-[#FF5733] text-white text-xl font-black italic tracking-wide skew-x-[-10deg] hover:scale-105 transition-transform"
+            >
+              <span className="block skew-x-[10deg]">BOOK TODAY</span>
             </button>
           </div>
         </section>
 
-        {/* SHOP STATUS SECTION */}
-        <section className="max-w-7xl mx-auto px-4 -mt-6 relative z-20">
-          <div className="bg-zinc-900 border-l-4 border-[#FF5733] p-6 shadow-2xl ring-1 ring-white/5">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Clock className="w-5 h-5 text-[#FF5733]" />
-                  <h2 className="text-sm font-black text-[#FF5733] tracking-widest uppercase">Current Lead Time</h2>
-                </div>
-                <div className="text-4xl font-black text-white tracking-tighter uppercase italic">
-                  {leadTime}
-                </div>
-              </div>
-              <div className="text-zinc-500 text-sm font-black uppercase italic tracking-widest bg-zinc-950 px-4 py-2 border border-zinc-800">
-                {isOpen ? "Shop is Active" : "No Walk-ins Today"}
-              </div>
+        {/* LEAD TIME */}
+        <section className="px-4 -mt-10 relative z-20 max-w-5xl mx-auto">
+          <div className="bg-zinc-900 border-l-4 border-[#FF5733] p-8 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+              <p className="text-[10px] font-black text-[#FF5733] uppercase tracking-[0.3em] mb-2">Shop Availability</p>
+              <h3 className="text-5xl font-black text-white tracking-tighter italic">{leadTime}</h3>
             </div>
+            <p className="text-zinc-500 text-[10px] font-bold uppercase italic max-w-xs text-center md:text-right">
+              {isOpen ? 'Current estimate for major repairs. Tires & oil changes are walk-in friendly.' : 'Shop is currently at capacity.'}
+            </p>
           </div>
         </section>
 
-        {/* SERVICE MENU */}
-        <section className="max-w-7xl mx-auto px-4 py-20">
-          <div className="flex items-end gap-4 mb-12 border-b-2 border-zinc-800 pb-4">
-            <h2 className="text-5xl font-black text-zinc-800 leading-none">01</h2>
-            <h3 className="text-3xl font-black text-white leading-none mb-1 uppercase italic">Services</h3>
+        {/* SERVICES */}
+        <section className="max-w-7xl mx-auto px-4 py-24">
+          <div className="flex items-center gap-4 mb-12">
+            <h2 className="text-5xl font-black text-zinc-900">01</h2>
+            <h3 className="text-2xl font-black uppercase italic">Service Menu</h3>
+            <div className="h-px flex-1 bg-zinc-900"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {services.map((service, index) => {
-              const Icon = service.icon;
-              return (
-                <div key={index} className="group bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 hover:border-[#FF5733] p-6 transition-all">
-                  <div className="flex justify-between items-start mb-4">
-                    <Icon className="w-8 h-8 text-zinc-600 group-hover:text-[#FF5733] transition-colors" />
-                    <span className="text-xl font-black text-[#FF5733] italic">{service.price}</span>
-                  </div>
-                  <h4 className="text-xl font-black mb-2 uppercase italic tracking-tighter">{service.name}</h4>
-                  <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide">{service.description}</p>
+            {services.map((s, i) => (
+              <div key={i} className="group bg-zinc-900/30 p-8 border border-zinc-900 hover:border-[#FF5733] transition-all rounded-2xl">
+                <div className="flex justify-between items-start mb-6">
+                  <s.icon className="w-8 h-8 text-zinc-800 group-hover:text-[#FF5733] transition-colors" />
+                  <span className="text-[#FF5733] font-black text-lg">{s.price}</span>
                 </div>
-              )
-            })}
+                <h4 className="text-xl font-black uppercase italic mb-2 tracking-tight">{s.name}</h4>
+                <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{s.description}</p>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* RECENT BUILDS */}
-        <section className="max-w-7xl mx-auto px-4 py-20">
-          <div className="flex items-end gap-4 mb-12 border-b-2 border-zinc-800 pb-4">
-            <h2 className="text-5xl font-black text-zinc-800 leading-none">02</h2>
-            <h3 className="text-3xl font-black text-white leading-none mb-1 uppercase italic">Recent Builds</h3>
+        {/* GALLERY */}
+        <section className="max-w-7xl mx-auto px-4 py-24 border-t border-zinc-900">
+           <div className="flex items-center gap-4 mb-12">
+            <h2 className="text-5xl font-black text-zinc-900">02</h2>
+            <h3 className="text-2xl font-black uppercase italic">The Vault</h3>
+            <div className="h-px flex-1 bg-zinc-900"></div>
           </div>
           
-          {isLoadingGallery ? (
-            <div className="py-20 text-center">
-              <div className="inline-block w-8 h-8 border-4 border-zinc-800 border-t-[#FF5733] rounded-full animate-spin mb-4"></div>
-              <p className="text-[10px] font-black uppercase text-zinc-600 tracking-[0.3em]">Loading Gallery...</p>
-            </div>
-          ) : builds.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4">
-              {builds.map((build, i) => (
-                <div key={i} className="relative aspect-[4/5] group overflow-hidden bg-zinc-900 border border-zinc-800">
-                  <img src={build.img} alt={build.title} className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-700" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 flex items-end p-4 transition-opacity">
-                    <span className="text-white font-black uppercase text-xs">{build.title}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-20 text-center border-2 border-dashed border-zinc-900 rounded-2xl">
-              <Camera className="w-10 h-10 text-zinc-800 mx-auto mb-4" />
-              <p className="text-zinc-600 font-black uppercase text-[10px] tracking-widest">No builds found in Cloudinary</p>
-            </div>
-          )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {builds.length > 0 ? builds.map((b, i) => (
+              <div key={i} className="aspect-square bg-zinc-900 rounded-2xl overflow-hidden group border border-zinc-900">
+                <img src={b.img} className="w-full h-full object-cover filter grayscale hover:grayscale-0 transition-all duration-700 group-hover:scale-110" />
+              </div>
+            )) : (
+              <div className="col-span-full py-20 text-center border-2 border-dashed border-zinc-900 rounded-3xl">
+                <Camera className="w-8 h-8 text-zinc-900 mx-auto mb-4" />
+                <p className="text-[10px] font-black uppercase text-zinc-800 tracking-widest">Awaiting First Custom Build</p>
+              </div>
+            )}
+          </div>
         </section>
 
-        <div className="h-32"></div>
+        <div className="h-40"></div>
       </main>
 
       {/* FOOTER */}
-      <footer className="flex-none bg-zinc-950 border-t-2 border-[#FF5733] z-50 shadow-2xl pb-[env(safe-area-inset-bottom)]">
+      <footer className="flex-none bg-zinc-950 border-t-2 border-[#FF5733] z-50">
         <div className="grid grid-cols-3 divide-x divide-zinc-900">
           <a href="tel:+15551234567" className="flex flex-col items-center justify-center py-6 bg-zinc-900 hover:bg-zinc-800 group transition-colors">
-            <Phone className="w-7 h-7 mb-1 text-zinc-500 group-hover:text-white" />
-            <span className="text-[10px] font-black tracking-widest text-zinc-500 uppercase">CALL</span>
+            <Phone className="w-6 h-6 mb-1 text-zinc-600 group-hover:text-white" />
+            <span className="text-[9px] font-black tracking-[0.2em] text-zinc-600 group-hover:text-white uppercase">CALL</span>
           </a>
-          <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center py-6 bg-zinc-900 hover:bg-zinc-800 group transition-colors">
-            <MapPin className="w-7 h-7 mb-1 text-zinc-500 group-hover:text-white" />
-            <span className="text-[10px] font-black tracking-widest text-zinc-500 uppercase">MAPS</span>
+          <a href="https://maps.google.com" target="_blank" className="flex flex-col items-center justify-center py-6 bg-zinc-900 hover:bg-zinc-800 group transition-colors">
+            <MapPin className="w-6 h-6 mb-1 text-zinc-600 group-hover:text-white" />
+            <span className="text-[9px] font-black tracking-[0.2em] text-zinc-600 group-hover:text-white uppercase">MAPS</span>
           </a>
-          <button className="flex flex-col items-center justify-center py-6 bg-[#FF5733] hover:bg-[#E64A2A] text-white">
-            <Calendar className="w-7 h-7 mb-1" />
-            <span className="text-[10px] font-black tracking-widest uppercase">BOOK</span>
+          <button 
+            onClick={() => setShowBooking(true)}
+            className="flex flex-col items-center justify-center py-6 bg-[#FF5733] hover:bg-[#E64A2A] transition-colors"
+          >
+            <Calendar className="w-6 h-6 mb-1 text-white" />
+            <span className="text-[9px] font-black tracking-[0.2em] text-white uppercase">BOOK</span>
           </button>
         </div>
       </footer>
