@@ -280,7 +280,7 @@ export default function App() {
         </div>
         <button onDoubleClick={() => setShowSettings(true)} className="flex items-center gap-2 bg-zinc-900 py-1.5 px-3 rounded-full border border-zinc-800">
           <div className={`w-3 h-3 rounded-full ${isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-          <span className="text-[20px] font-black text-zinc-400 uppercase tracking-widest">{isOpen ? 'GARAGE OPEN' : 'GARAGE CLOSED'}</span>
+          <span className="text-[20px] font-black text-zinc-400 uppercase tracking-widest">{isOpen ? 'OPEN' : 'CLOSED'}</span>
         </button>
       </header>
 
