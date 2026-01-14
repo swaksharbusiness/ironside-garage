@@ -26,7 +26,7 @@ import {
 
 // --- CONFIGURATION ---
 const CLOUDINARY_CLOUD_NAME = "dq0eqnh6u"; 
-const CLOUDINARY_UPLOAD_PRESET = "your_preset"; 
+const CLOUDINARY_UPLOAD_PRESET = "ironside_preset"; 
 const GALLERY_TAG = "ironside_gallery"; 
 const ADMIN_PASSWORD = "1234"; 
 const SHOP_PHONE = "(555) 123-4567";
@@ -130,8 +130,9 @@ export default function App() {
   ];
 
   return (
-    <div className="h-screen w-full flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-[#FF5733] overflow-hidden">
-	
+    
+    <div className="fixed inset-0 h-dynamic-screen w-full flex flex-col bg-zinc-950 text-zinc-100 font-sans selection:bg-[#FF5733] overflow-hidden">
+  
       {/* 1. BOOKING MODAL */}
       {showBooking && (
         <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
@@ -168,7 +169,7 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}	   
+      )}    
       
       {/* SETTINGS / ADMIN OVERLAY */}
       {showSettings && (
@@ -252,7 +253,7 @@ export default function App() {
                       ))}
                     </div>
                     <p className="mt-4 text-[10px] text-zinc-600 leading-tight">
-                      * To delete images permanently, use your Cloudinary Dashboard. 
+                      * To delete images permanently, Contact Administrator.
                       Changes appear here on refresh.
                     </p>
                   </section>
@@ -285,7 +286,7 @@ export default function App() {
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden touch-pan-y">
         
         {/* HERO */}
         <section className="relative min-h-[75vh] flex items-center justify-center px-4 py-12 bg-zinc-950 overflow-hidden text-center">
@@ -295,7 +296,7 @@ export default function App() {
               We Get You<br />
               <span className="text-[#FF5733]">Back On The Road.</span>
             </h1>
-            <p className="text-zinc-400 font-bold uppercase tracking-widest text-lg md:text-2xl mb-10">no upsell. just honest services</p>
+            <p className="text-zinc-400 font-bold uppercase tracking-widest text-lg md:text-2xl mb-10">no upsell. just honest services.</p>
             <button 
               onClick={() => setShowBooking(true)}
               className="px-12 py-6 bg-[#FF5733] text-white text-xl font-black italic tracking-wide skew-x-[-10deg] hover:scale-105 transition-transform"
@@ -305,23 +306,35 @@ export default function App() {
           </div>
         </section>
 
-        {/* LEAD TIME */}
-        <section className="px-4 -mt-10 relative z-20 max-w-5xl mx-auto">
-          <div className="bg-zinc-900 border-l-4 border-[#FF5733] p-8 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
-            <div>
-              <p className="text-[10px] font-black text-[#FF5733] uppercase tracking-[0.3em] mb-2">Shop Availability</p>
-              <h3 className="text-5xl font-black text-white tracking-tighter italic">{leadTime}</h3>
-            </div>
-            <p className="text-zinc-500 text-[10px] font-bold uppercase italic max-w-xs text-center md:text-right">
-              {isOpen ? 'Current estimate for major repairs. Tires & oil changes are walk-in friendly.' : 'Shop is currently at capacity.'}
-            </p>
-          </div>
-        </section>
+        <section className="px-4 -mt-10 relative z-20 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+		{/* Lead Time Section */}
+			<div className="bg-zinc-900 border-l-4 border-[#FF5733] p-8 shadow-2xl flex flex-col justify-center gap-4">
+				<div>
+					<p className="text-[10px] font-black text-[#FF5733] uppercase tracking-[0.3em] mb-2">Shop Availability</p>
+					<h3 className="text-5xl font-black text-white tracking-tighter italic">{leadTime}</h3>
+				</div>
+					<p className="text-zinc-500 text-[10px] font-bold uppercase italic">
+					{isOpen ? 'Current estimate for major repairs. Tires & oil changes are walk-in friendly.' : 'Shop is currently at capacity.'}
+					</p>
+			</div>
+
+		{/* Text Us Section */}
+			<div className="bg-[#FF5733] p-8 shadow-2xl flex flex-col items-center justify-center text-center gap-4">
+				<div className="flex items-center gap-4">
+				  <Camera className="w-12 h-12 text-black/55" strokeWidth={1.5} />
+				  <h2 className="text-2xl font-black text-white tracking-tight leading-none uppercase italic">Something Sounding Wrong?</h2>
+				</div>
+				<a href="sms:+15551234567" className="w-full inline-flex items-center justify-center gap-3 px-6 py-4 bg-zinc-950 text-white text-sm font-black tracking-wide hover:scale-[1.02] transition-transform shadow-xl uppercase">
+				  <MessageSquare className="w-4 h-4 text-[#FF5733]" />
+				  Text a photo or video
+				</a>
+			</div>
+		</section>	
 
         {/* SERVICES */}
         <section className="max-w-7xl mx-auto px-4 py-24">
           <div className="flex items-center gap-4 mb-12">
-            <h2 className="text-5xl font-black text-zinc-900">01</h2>
+            <h2 className="text-5xl font-black text-zinc-500">01</h2>
             <h3 className="text-2xl font-black uppercase italic">Service Menu</h3>
             <div className="h-px flex-1 bg-zinc-900"></div>
           </div>
@@ -342,8 +355,8 @@ export default function App() {
         {/* GALLERY */}
         <section className="max-w-7xl mx-auto px-4 py-24 border-t border-zinc-900">
            <div className="flex items-center gap-4 mb-12">
-            <h2 className="text-5xl font-black text-zinc-900">02</h2>
-            <h3 className="text-2xl font-black uppercase italic">The Vault</h3>
+            <h2 className="text-5xl font-black text-zinc-500">02</h2>
+            <h3 className="text-2xl font-black uppercase italic">Recent Builds</h3>
             <div className="h-px flex-1 bg-zinc-900"></div>
           </div>
           
@@ -364,7 +377,7 @@ export default function App() {
         <div className="h-40"></div>
       </main>
 
-      {/* FOOTER */}
+      {/* FOOTER: Now fully visible on mobile because parent uses fixed bounds and dvh height. */}
       <footer className="flex-none bg-zinc-950 border-t-2 border-[#FF5733] z-50">
         <div className="grid grid-cols-3 divide-x divide-zinc-900">
           <a href="tel:+15551234567" className="flex flex-col items-center justify-center py-6 bg-zinc-900 hover:bg-zinc-800 group transition-colors">
