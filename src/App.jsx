@@ -298,12 +298,9 @@ export default function App() {
                       Changes appear here on refresh.
                     </p>
                   </section>
-<<<<<<< HEAD
 				  <div className="p-6 border-t border-zinc-800">
                   <button onClick={() => { setIsAdminAuthenticated(false); setShowSettings(false); }} className="w-full py-4 bg-[#FF5733] text-white font-black uppercase text-sm tracking-widest rounded-xl">Save & Close</button>
                 </div>
-=======
->>>>>>> 6a7b9fb95e8cc28e8401066612872df323d61561
                 </div>  
               </>
             )}
